@@ -1,0 +1,13 @@
+
+=== Fri Apr 11 21:30:15 2025
+
+Packages were changed.
+Update Mode: mergeDefaultDependencies
+
+The following packages were updated:
+  com.unity.cinemachine from version 2.9.5 to 2.10.1
+  com.unity.ide.rider from version 3.0.26 to 3.0.31
+  com.unity.recorder from version 4.0.2 to 4.0.3
+  com.unity.render-pipelines.universal from version 14.0.9 to 14.0.11
+  com.unity.render-pipelines.universal-config from version 14.0.9 to 14.0.10
+  com.unity.splines from version 2.5.1 to 2.6.1
