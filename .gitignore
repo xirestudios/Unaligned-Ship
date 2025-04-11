@@ -76,3 +76,9 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 /Unaligned Ship/Temp
+/Unaligned Ship/Library
+*.dll
+/Unaligned Ship/Library
+*.log
+*.log
+/Unaligned Ship/Library
