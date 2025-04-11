@@ -359,7 +359,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Assets/Prefabs/key
+    - Assets
     m_Globs: []
     m_OriginalText: 
     m_ImportLogFlags: 0
@@ -367,15 +367,15 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 64
   m_LastFolders:
-  - Assets/Prefabs/key
+  - Assets
   m_LastFoldersGridSize: -1
-  m_LastProjectPath: C:\WORK\Unaligned-Ship\Unaligned Ship
+  m_LastProjectPath: C:\WORK\Unaligned-Ship-Game\Unaligned Ship
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
     scrollPos: {x: 0, y: 0}
-    m_SelectedIDs: 0e700000
-    m_LastClickedID: 28686
+    m_SelectedIDs: b66d0000
+    m_LastClickedID: 28086
     m_ExpandedIDs: 00000000b66d0000b86d0000ba6d0000bc6d0000be6d0000c06d0000c26d000000ca9a3b
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -1041,7 +1041,7 @@ MonoBehaviour:
   m_Rotation:
     m_Target: {x: -0.15826373, y: -0.36388233, z: 0.06298212, w: -0.9159183}
     speed: 2
-    m_Value: {x: -0.1571386, y: -0.36389753, z: 0.06253482, w: -0.9159561}
+    m_Value: {x: -0.15823756, y: -0.3638222, z: 0.06297171, w: -0.9157669}
   m_Size:
     m_Target: 9.685906
     speed: 2
