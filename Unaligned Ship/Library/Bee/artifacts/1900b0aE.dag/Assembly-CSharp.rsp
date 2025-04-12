@@ -374,6 +374,7 @@
 -analyzer:"C:/Program Files/Unity/Hub/Editor/2022.3.44f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.Properties.SourceGenerator.dll"
 -analyzer:"C:/Program Files/Unity/Hub/Editor/2022.3.44f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.SourceGenerators.dll"
 "Assets/AdvancedObjectDragger.cs"
+"Assets/EnemyDetector.cs"
 "Assets/Scenes/Cockpit/Scripts/Boids/Boids.cs"
 "Assets/Scenes/Cockpit/Scripts/Boids/GetClosestBoidTest.cs"
 "Assets/Scenes/Cockpit/Scripts/CapitalShipCannon.cs"
