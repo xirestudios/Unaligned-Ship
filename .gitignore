@@ -82,3 +82,7 @@ crashlytics-build.properties
 *.log
 *.log
 /Unaligned Ship/Library
+/Unaligned Ship/Library
+/Unaligned Ship/Library/StateCache
+/Unaligned Ship/Library
+/Unaligned Ship/UserSettings

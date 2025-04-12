@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
+using System.Collections;
 #endif
 
 namespace StarterAssets
@@ -20,6 +21,17 @@ namespace StarterAssets
 		public float RotationSpeed = 1.0f;
 		[Tooltip("Acceleration and deceleration")]
 		public float SpeedChangeRate = 10.0f;
+
+		[Header("Crouch")]
+		[Tooltip("Height of the character when crouching")]
+		public float CrouchHeight = 0.9f;
+		[Tooltip("Speed multiplier while crouching")]
+		public float CrouchSpeed = 2.0f;
+		[Tooltip("How fast the character crouches/stands up")]
+		public float CrouchTransitionSpeed = 5.0f;
+
+		private float _originalHeight;
+		private bool _isCrouching;
 
 		[Space(10)]
 		[Tooltip("The height the player can jump")]
@@ -108,12 +120,16 @@ namespace StarterAssets
 			// reset our timeouts on start
 			_jumpTimeoutDelta = JumpTimeout;
 			_fallTimeoutDelta = FallTimeout;
+
+			// Store original height
+    		_originalHeight = _controller.height;
 		}
 
 		private void Update()
 		{
 			JumpAndGravity();
 			GroundedCheck();
+			HandleCrouch(); // Add this line
 			Move();
 		}
 
@@ -128,6 +144,37 @@ namespace StarterAssets
 			Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z);
 			Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
 		}
+
+		private void HandleCrouch()
+{
+    // Check for crouch input (CTRL key)
+    bool wantsToCrouch = Keyboard.current != null && Keyboard.current.ctrlKey.isPressed;
+
+    // If crouch state changed
+    if (wantsToCrouch != _isCrouching)
+    {
+        _isCrouching = wantsToCrouch;
+        
+        // Adjust height based on crouch state
+        float targetHeight = _isCrouching ? CrouchHeight : _originalHeight;
+        
+        // Smoothly transition to target height
+        StartCoroutine(SmoothCrouchTransition(targetHeight));
+    }
+}
+
+private IEnumerator SmoothCrouchTransition(float targetHeight)
+{
+    float initialHeight = _controller.height;
+    float t = 0f;
+    
+    while (t < 1f)
+    {
+        t += Time.deltaTime * CrouchTransitionSpeed;
+        _controller.height = Mathf.Lerp(initialHeight, targetHeight, t);
+        yield return null;
+    }
+}
 
 		private void CameraRotation()
 		{
@@ -157,6 +204,11 @@ namespace StarterAssets
 			float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
 
 			// a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
+			// Reduce speed if crouching
+			if (_isCrouching)
+			{
+				targetSpeed = CrouchSpeed;
+			}
 
 			// note: Vector2's == operator uses approximation so is not floating point error prone, and is cheaper than magnitude
 			// if there is no input, set the target speed to 0
