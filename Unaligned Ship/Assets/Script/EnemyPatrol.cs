@@ -1,14 +1,24 @@
 using UnityEngine;
 using UnityEngine.AI;
+using System.Collections.Generic; // Needed for List<>
 
 [RequireComponent(typeof(NavMeshAgent))]
 [RequireComponent(typeof(Animator))]
 public class EnemyPatrol : MonoBehaviour
 {
-    [Header("Detection Settings")]
-    public float detectionRadius = 10f;
-    public float chaseRadius = 4f;
+    [Header("Base Detection Settings")]
+    public float baseDetectionRadius = 10f;
+    public float baseChaseRadius = 4f;
+    [Range(0, 360)] public float baseFovAngle = 180f;
+    public float eyeHeight = 1f;
     public LayerMask playerLayer;
+    public LayerMask obstructionLayers;
+
+    [Header("Player Input Modifiers")]
+    public float runDetectionRadius = 15f; // Shift pressed
+    public float sneakDetectionRadius = 6f; // CTRL pressed
+    public float runFovAngle = 360f;
+    public float sneakFovAngle = 90f;
 
     [Header("Patrol Settings")]
     public float patrolRadius = 15f;
@@ -20,7 +30,7 @@ public class EnemyPatrol : MonoBehaviour
     private Vector3 initialPosition;
     private Transform playerTarget;
     private bool isMoving;
-    private float waitTimer; // Added missing variable
+    private float waitTimer;
     private const string WALK_ANIM_PARAM = "isWalking";
 
     void Start()
@@ -28,8 +38,7 @@ public class EnemyPatrol : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         initialPosition = transform.position;
-        gameObject.layer = LayerMask.NameToLayer("Enemy");
-        waitTimer = 0; // Initialize timer
+        waitTimer = Random.Range(minWaitTime, maxWaitTime);
     }
 
     void Update()
@@ -39,21 +48,63 @@ public class EnemyPatrol : MonoBehaviour
     }
 
     void DetectPlayer()
-{
-    // Only detect objects on Player layer (not HidePlayer)
-    Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius, 1 << LayerMask.NameToLayer("Player"));
-    
-    if (hits.Length > 0)
     {
-        playerTarget = hits[0].transform;
+        // Get current detection parameters based on input
+        float currentRadius;
+        float currentFov;
+
+        if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+        {
+            currentRadius = runDetectionRadius;
+            currentFov = runFovAngle;
+        }
+        else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+        {
+            currentRadius = sneakDetectionRadius;
+            currentFov = sneakFovAngle;
+        }
+        else
+        {
+            currentRadius = baseDetectionRadius;
+            currentFov = baseFovAngle;
+        }
+
+        Collider[] hits = Physics.OverlapSphere(transform.position, currentRadius, playerLayer);
+        
+        foreach (Collider hit in hits)
+        {
+            Vector3 directionToTarget = (hit.transform.position - transform.position).normalized;
+            float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
+
+            // Skip FOV check if in 360-degree mode (runFovAngle)
+            if (currentFov >= 360f || angleToTarget < currentFov / 2)
+            {
+                Vector3 eyePosition = transform.position + Vector3.up * eyeHeight;
+                Vector3 targetPosition = hit.transform.position + Vector3.up * 0.5f;
+
+                if (!Physics.Linecast(eyePosition, targetPosition, obstructionLayers))
+                {
+                    playerTarget = hit.transform;
+                    break;
+                }
+            }
+        }
+
+        // Target loss conditions
+        if (playerTarget != null && 
+            (Vector3.Distance(transform.position, playerTarget.position) > baseChaseRadius ||
+             (!Input.GetKey(KeyCode.LeftShift) && !IsTargetInFront(playerTarget, baseFovAngle))))
+        {
+            playerTarget = null;
+        }
     }
-    else if (playerTarget != null && 
-             (Vector3.Distance(transform.position, playerTarget.position) > chaseRadius || 
-              playerTarget.gameObject.layer == LayerMask.NameToLayer("HidePlayer")))
+
+    bool IsTargetInFront(Transform target, float fovAngle)
     {
-        playerTarget = null;
+        Vector3 directionToTarget = (target.position - transform.position).normalized;
+        float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
+        return angleToTarget < fovAngle / 2;
     }
-}
 
     void HandleMovement()
     {
@@ -69,22 +120,25 @@ public class EnemyPatrol : MonoBehaviour
 
     void ChasePlayer()
     {
-        agent.SetDestination(playerTarget.position);
-        UpdateAnimation(true);
+        if (playerTarget != null)
+        {
+            agent.SetDestination(playerTarget.position);
+            UpdateAnimation(true);
+        }
     }
 
     void Patrol()
     {
-        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
+        if (agent.remainingDistance <= agent.stoppingDistance)
         {
             UpdateAnimation(false);
-            
-            if (waitTimer <= 0) 
+
+            if (waitTimer <= 0)
             {
                 SetNewRandomDestination();
-                waitTimer = Random.Range(minWaitTime, maxWaitTime); // Reset timer
+                waitTimer = Random.Range(minWaitTime, maxWaitTime);
             }
-            else 
+            else
             {
                 waitTimer -= Time.deltaTime;
             }
@@ -98,7 +152,8 @@ public class EnemyPatrol : MonoBehaviour
     void SetNewRandomDestination()
     {
         Vector3 randomPoint = initialPosition + Random.insideUnitSphere * patrolRadius;
-        if (NavMesh.SamplePosition(randomPoint, out NavMeshHit hit, patrolRadius, NavMesh.AllAreas))
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(randomPoint, out hit, patrolRadius, NavMesh.AllAreas))
         {
             agent.SetDestination(hit.position);
         }
@@ -115,9 +170,43 @@ public class EnemyPatrol : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
-        Gizmos.color = Color.blue;
-        Gizmos.DrawWireSphere(initialPosition, patrolRadius);
+        // Visualize current detection parameters
+        float currentRadius = baseDetectionRadius;
+        float currentFov = baseFovAngle;
+
+        if (Application.isPlaying)
+        {
+            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            {
+                currentRadius = runDetectionRadius;
+                currentFov = runFovAngle;
+            }
+            else if (Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl))
+            {
+                currentRadius = sneakDetectionRadius;
+                currentFov = sneakFovAngle;
+            }
+        }
+
+        // Draw detection sphere
+        Gizmos.color = new Color(1, 0, 0, 0.1f);
+        Gizmos.DrawSphere(transform.position, currentRadius);
+
+        // Draw FOV cone (unless in 360 mode)
+        if (currentFov < 360f)
+        {
+            Vector3 eyePosition = transform.position + Vector3.up * eyeHeight;
+            Vector3 forward = transform.forward * currentRadius;
+            Quaternion leftRot = Quaternion.AngleAxis(-currentFov / 2, Vector3.up);
+            Quaternion rightRot = Quaternion.AngleAxis(currentFov / 2, Vector3.up);
+
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(eyePosition, eyePosition + leftRot * forward);
+            Gizmos.DrawLine(eyePosition, eyePosition + rightRot * forward);
+        }
+
+        // Draw patrol area
+        Gizmos.color = new Color(0, 0, 1, 0.1f);
+        Gizmos.DrawSphere(initialPosition, patrolRadius);
     }
 }
