@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
+
 public class PlayerHealth : MonoBehaviour
 {
     [Header("Health Settings")]
@@ -53,6 +54,7 @@ public class PlayerHealth : MonoBehaviour
         timeSinceLastDamage = 0f;
         isRegenerating = false;
         StopAllCoroutines();
+        // GetComponent<FirstPersonController>().PushPlayer(-transform.forward);
 
         // Visual feedback
         if (damageIndicator != null)

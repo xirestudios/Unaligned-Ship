@@ -6,11 +6,13 @@ public class EnemyAttack : MonoBehaviour
     public int damage = 1;
     
     private PlayerHealth playerHealth;
+    private EnemyAttackManager attackManager;
 
     void Start()
     {
         // Get reference to player's health component
         playerHealth = GameObject.FindWithTag("Player")?.GetComponent<PlayerHealth>();
+        attackManager = GetComponentInParent<EnemyAttackManager>();
         
         if (playerHealth == null)
         {
@@ -24,6 +26,10 @@ public class EnemyAttack : MonoBehaviour
         if (other.CompareTag("Player") && playerHealth != null)
         {
             playerHealth.TakeDamage(damage);
+            if (attackManager != null)
+            {
+                attackManager.RegisterHit();
+            }
             Debug.Log($"Hit player! Damage dealt: {damage}");
         }
     }
