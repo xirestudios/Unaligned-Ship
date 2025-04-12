@@ -33,6 +33,21 @@ namespace StarterAssets
 		private float _originalHeight;
 		private bool _isCrouching;
 
+		[Header("Head Bob")]
+		[Tooltip("Amount of head bob when walking")]
+		public float WalkBobAmount = 0.05f;
+		[Tooltip("Amount of head bob when sprinting")]
+		public float SprintBobAmount = 0.1f;
+		[Tooltip("Speed of head bob when walking")]
+		public float WalkBobSpeed = 10f;
+		[Tooltip("Speed of head bob when sprinting")]
+		public float SprintBobSpeed = 14f;
+
+		private float _defaultCameraYPosition;
+		private float _headBobTimer;
+		private float _currentBobAmount;
+		private float _currentBobSpeed;
+
 		[Space(10)]
 		[Tooltip("The height the player can jump")]
 		public float JumpHeight = 1.2f;
@@ -62,6 +77,12 @@ namespace StarterAssets
 		public float TopClamp = 90.0f;
 		[Tooltip("How far in degrees can you move the camera down")]
 		public float BottomClamp = -90.0f;
+
+		[Header("Crouch Obstacle Detection")]
+		[Tooltip("Distance to check for obstacles above the player")]
+		public float CeilingCheckDistance = 0.5f;
+		[Tooltip("Layer mask for obstacle detection")]
+		public LayerMask ObstacleLayers;
 
 		// cinemachine
 		private float _cinemachineTargetPitch;
@@ -123,15 +144,25 @@ namespace StarterAssets
 
 			// Store original height
     		_originalHeight = _controller.height;
+
+			if (CinemachineCameraTarget != null)
+			{
+				_defaultCameraYPosition = CinemachineCameraTarget.transform.localPosition.y;
+			}
+			
+			_currentBobAmount = WalkBobAmount;
+			_currentBobSpeed = WalkBobSpeed;
+
 		}
 
 		private void Update()
-		{
-			JumpAndGravity();
-			GroundedCheck();
-			HandleCrouch(); // Add this line
-			Move();
-		}
+{
+    JumpAndGravity();
+    GroundedCheck();
+    HandleCrouch();
+    Move();
+    HandleHeadBob(); // Add this line
+}
 
 		private void LateUpdate()
 		{
@@ -145,10 +176,53 @@ namespace StarterAssets
 			Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
 		}
 
+		private void HandleHeadBob()
+{
+    if (CinemachineCameraTarget == null) return;
+
+    // Set bob parameters based on movement state
+    if (_input.sprint && _input.move != Vector2.zero)
+    {
+        _currentBobAmount = SprintBobAmount;
+        _currentBobSpeed = SprintBobSpeed;
+    }
+    else if (_input.move != Vector2.zero)
+    {
+        _currentBobAmount = WalkBobAmount;
+        _currentBobSpeed = WalkBobSpeed;
+    }
+
+    // Apply head bob when moving and grounded
+    if (Grounded && _input.move != Vector2.zero)
+    {
+        _headBobTimer += Time.deltaTime * _currentBobSpeed;
+        float bobOffset = Mathf.Sin(_headBobTimer) * _currentBobAmount;
+        
+        Vector3 cameraPos = CinemachineCameraTarget.transform.localPosition;
+        cameraPos.y = _defaultCameraYPosition + bobOffset;
+        CinemachineCameraTarget.transform.localPosition = cameraPos;
+    }
+    else
+    {
+        // Reset camera position when not moving
+        Vector3 cameraPos = CinemachineCameraTarget.transform.localPosition;
+        cameraPos.y = _defaultCameraYPosition;
+        CinemachineCameraTarget.transform.localPosition = cameraPos;
+        _headBobTimer = 0; // Reset timer
+    }
+}
+
 		private void HandleCrouch()
 {
     // Check for crouch input (CTRL key)
     bool wantsToCrouch = Keyboard.current != null && Keyboard.current.ctrlKey.isPressed;
+
+    // If player wants to stand up but there's an obstacle, force crouch
+    if (_isCrouching && !wantsToCrouch && HasObstacleAbove())
+    {
+        // Player can't stand up because there's an obstacle
+        return;
+    }
 
     // If crouch state changed
     if (wantsToCrouch != _isCrouching)
@@ -163,6 +237,17 @@ namespace StarterAssets
     }
 }
 
+private bool HasObstacleAbove()
+{
+    // Calculate the top of the character controller
+    float currentHeight = _controller.height;
+    Vector3 rayStart = transform.position + _controller.center + Vector3.up * (currentHeight / 2 - _controller.radius);
+    
+    // Cast a sphere to check for obstacles
+    float checkRadius = _controller.radius * 0.9f; // Slightly smaller than controller radius
+    return Physics.SphereCast(rayStart, checkRadius, Vector3.up, out _, CeilingCheckDistance, ObstacleLayers);
+}
+
 private IEnumerator SmoothCrouchTransition(float targetHeight)
 {
     float initialHeight = _controller.height;
@@ -170,6 +255,16 @@ private IEnumerator SmoothCrouchTransition(float targetHeight)
     
     while (t < 1f)
     {
+        // If transitioning to standing but obstacle appears, abort and return to crouch
+        if (!_isCrouching && HasObstacleAbove())
+        {
+            // Immediately return to crouch
+            _isCrouching = true;
+            targetHeight = CrouchHeight;
+            initialHeight = _controller.height;
+            t = 0f;
+        }
+        
         t += Time.deltaTime * CrouchTransitionSpeed;
         _controller.height = Mathf.Lerp(initialHeight, targetHeight, t);
         yield return null;

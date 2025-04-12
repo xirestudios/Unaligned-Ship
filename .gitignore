@@ -10,7 +10,6 @@
 /[Bb]uilds/
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
-/[Tt]emp/
 /[Tt]emp*/
 /[Tt]emp~/
 
@@ -50,6 +49,8 @@ ExportedObj/
 *.mdb
 *.opendb
 *.VC.db
+*.log
+*.dll
 
 # Unity3D generated meta files
 *.pidb.meta
@@ -77,12 +78,6 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 /Unaligned Ship/Temp
 /Unaligned Ship/Library
-*.dll
-/Unaligned Ship/Library
-*.log
-*.log
-/Unaligned Ship/Library
-/Unaligned Ship/Library
 /Unaligned Ship/Library/StateCache
-/Unaligned Ship/Library
 /Unaligned Ship/UserSettings
+
