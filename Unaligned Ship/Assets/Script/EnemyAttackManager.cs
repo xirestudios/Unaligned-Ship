@@ -24,14 +24,17 @@ public class EnemyAttackManager : MonoBehaviour
     private Transform player;
     private Animator animator;
     private float lastAttackTime;
+    private float chokeStartTime;
     private float lastChokeTime;
     private bool playerInRange;
     private int hitCount = 0;
     private PlayerHealth playerHealth;
     private bool isChoking = false;
+    private EnemyPatrol enemyPatrol;
 
     void Start()
     {
+        enemyPatrol = GetComponent<EnemyPatrol>();
         animator = GetComponent<Animator>();
         player = GameObject.FindGameObjectWithTag("Player").transform;
         playerHealth = player.GetComponent<PlayerHealth>();
@@ -44,13 +47,21 @@ public class EnemyAttackManager : MonoBehaviour
 
     void Update()
     {
+        // Don't attack if in patrol mode and not in combat
+        if (enemyPatrol != null && !enemyPatrol.IsInCombat)
+            return;
+
         // Check player distance
         playerInRange = Vector3.Distance(transform.position, player.position) <= detectionRange;
 
-        // Don't attack if currently choking
-        if (isChoking) return;
+        // If we're choking, check if animation finished
+        if (isChoking && Time.time - chokeStartTime > 10f) // 10 second timeout
+        {
+            Debug.LogWarning("Choke timeout - forcing end");
+            EndChoke();
+        }
 
-        // Trigger attack when player is in range and cooldown is ready
+        // Normal attack logic
         if (playerInRange && Time.time - lastAttackTime >= attackCooldown)
         {
             if (hitCount >= hitsBeforeChoke && Time.time - lastChokeTime >= chokeCooldown)
@@ -62,6 +73,14 @@ public class EnemyAttackManager : MonoBehaviour
                 Attack();
             }
         }
+
+        
+    }
+
+    bool IsChokeAnimationPlaying()
+    {
+        return animator.GetCurrentAnimatorStateInfo(0).IsTag("Choke") || 
+               animator.GetAnimatorTransitionInfo(0).anyState;
     }
 
     void Attack()
@@ -72,39 +91,42 @@ public class EnemyAttackManager : MonoBehaviour
 
     void ChokeAttack()
     {
+        chokeStartTime = Time.time;
         isChoking = true;
         lastAttackTime = Time.time;
         lastChokeTime = Time.time;
+        animator.ResetTrigger(attackTriggerName); // Clear any attack triggers
         animator.SetTrigger(chokeTriggerName);
         
-        // Activate choke camera
         if (chokeCamera != null)
             chokeCamera.SetActive(true);
             
-        // Invoke choke event
         onChoke.Invoke();
         
-        // Apply choke damage
         if (playerHealth != null)
         {
             playerHealth.TakeDamage(chokeDamage);
         }
         
-        // Reset hit counter
         hitCount = 0;
+        
+        Debug.Log("Choke started");
     }
 
-    // Call this method from the animation event when choke animation ends
+
     public void EndChoke()
     {
-        isChoking = false;
+        if (!isChoking) return; // Already ended
         
-        // Deactivate choke camera
+        isChoking = false;
+        animator.ResetTrigger(chokeTriggerName); // Clear choke trigger
+        
         if (chokeCamera != null)
             chokeCamera.SetActive(false);
             
-        // Invoke choke end event
         onChokeEnd.Invoke();
+        
+        Debug.Log("Choke ended");
     }
 
     // Call this method from the animation event when a normal attack hits

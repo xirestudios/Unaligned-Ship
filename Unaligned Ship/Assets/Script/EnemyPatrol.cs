@@ -33,6 +33,10 @@ public class EnemyPatrol : MonoBehaviour
     private float waitTimer;
     private const string WALK_ANIM_PARAM = "isWalking";
 
+    public bool IsInCombat { get; private set; }
+
+    
+
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
@@ -49,6 +53,15 @@ public class EnemyPatrol : MonoBehaviour
 
     void DetectPlayer()
     {
+        if (playerTarget != null)
+        {
+            IsInCombat = true;
+        }
+        else
+        {
+            IsInCombat = false;
+        }
+
         // Get current detection parameters based on input
         float currentRadius;
         float currentFov;
