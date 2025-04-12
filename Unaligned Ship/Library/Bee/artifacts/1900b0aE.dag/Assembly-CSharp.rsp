@@ -377,10 +377,6 @@
 -r:"Library/Bee/artifacts/1900b0aE.dag/UnityEngine.UI.ref.dll"
 -analyzer:"C:/Program Files/Unity/Hub/Editor/2022.3.44f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.Properties.SourceGenerator.dll"
 -analyzer:"C:/Program Files/Unity/Hub/Editor/2022.3.44f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.SourceGenerators.dll"
-"Assets/AdvancedObjectDragger.cs"
-"Assets/EnemyDetector.cs"
-"Assets/EnemyPatrol.cs"
-"Assets/PlayerHideZone.cs"
 "Assets/Scenes/Cockpit/Scripts/Boids/Boids.cs"
 "Assets/Scenes/Cockpit/Scripts/Boids/GetClosestBoidTest.cs"
 "Assets/Scenes/Cockpit/Scripts/CapitalShipCannon.cs"
@@ -408,6 +404,10 @@
 "Assets/Scenes/Oasis/Scripts/Runtime/OasisFog.cs"
 "Assets/Scenes/Oasis/Scripts/Runtime/OasisFogVolumeComponent.cs"
 "Assets/Scenes/Terminal/Scripts/Runtime/TopFoldout.cs"
+"Assets/Script/AdvancedObjectDragger.cs"
+"Assets/Script/EnemyDetector.cs"
+"Assets/Script/EnemyPatrol.cs"
+"Assets/Script/PlayerHideZone.cs"
 "Assets/SharedAssets/Benchmark/BenchmarkShortcutManager.cs"
 "Assets/SharedAssets/Benchmark/FrameData.cs"
 "Assets/SharedAssets/Benchmark/PerformanceTest.cs"
@@ -439,6 +439,8 @@
 "Assets/SharedAssets/Scripts/Runtime/SceneTransitionManager.cs"
 "Assets/SharedAssets/Scripts/Runtime/ScreenCamera.cs"
 "Assets/SharedAssets/Scripts/Runtime/ScreenController.cs"
+"Assets/Vefects/Trails VFX URP/Scripts/Demo_FreeCam.cs"
+"Assets/Vefects/Trails VFX URP/Scripts/Demo_TurningAround.cs"
 -langversion:9.0
 /deterministic
 /optimize+
