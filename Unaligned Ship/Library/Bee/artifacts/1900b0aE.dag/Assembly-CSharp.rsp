@@ -413,6 +413,7 @@
 "Assets/Script/EnemyAttackManager.cs"
 "Assets/Script/EnemyDetector.cs"
 "Assets/Script/EnemyPatrol.cs"
+"Assets/Script/EnemyStun.cs"
 "Assets/Script/PlayerHealth.cs"
 "Assets/Script/PlayerHideZone.cs"
 "Assets/SharedAssets/Benchmark/BenchmarkShortcutManager.cs"
