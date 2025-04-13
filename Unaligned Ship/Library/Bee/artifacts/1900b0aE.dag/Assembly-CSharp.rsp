@@ -407,6 +407,7 @@
 "Assets/Scenes/Terminal/Scripts/Runtime/TopFoldout.cs"
 "Assets/Script/AdvancedObjectDragger.cs"
 "Assets/Script/DoorLockGatcha.cs"
+"Assets/Script/DoorLockKey.cs"
 "Assets/Script/EnemyAttack.cs"
 "Assets/Script/EnemyAttackManager.cs"
 "Assets/Script/EnemyDetector.cs"

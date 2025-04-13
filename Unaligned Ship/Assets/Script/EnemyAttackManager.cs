@@ -105,10 +105,10 @@ public class EnemyAttackManager : MonoBehaviour
 
     float distanceToPlayer = Vector3.Distance(transform.position, player.position);
 
-    Debug.Log($"Update - Player layer: {playerLayerName}, " +
-            $"Hiding: {isPlayerHiding}, " +
-            $"Distance: {distanceToPlayer:F2}, " +
-            $"Position: {player.position}");
+    // Debug.Log($"Update - Player layer: {playerLayerName}, " +
+    //         $"Hiding: {isPlayerHiding}, " +
+    //         $"Distance: {distanceToPlayer:F2}, " +
+    //         $"Position: {player.position}");
 
     // Track player movement when hiding
     if (isPlayerHiding)
