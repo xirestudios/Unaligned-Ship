@@ -5,6 +5,8 @@ public class PlayerHideZone : MonoBehaviour
     [Header("Player Reference")]
     [Tooltip("Drag the player GameObject here")]
     public GameObject playerObject; // Assign in inspector
+    public static event System.Action<bool> OnPlayerHideStatusChanged;
+    public bool isPlayerHiding = false;
 
     [Header("Layer Settings")]
     [SerializeField] private string playerLayer = "Player";
@@ -12,20 +14,25 @@ public class PlayerHideZone : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        // Only affect the specific player object we assigned
-        if (other.gameObject == playerObject)
+        if (other.CompareTag("Player"))
         {
-            playerObject.layer = LayerMask.NameToLayer(hideLayer);
+            other.gameObject.layer = LayerMask.NameToLayer(hideLayer);
+            OnPlayerHideStatusChanged?.Invoke(true);
         }
     }
 
     private void OnTriggerExit(Collider other)
     {
-        // Only affect the specific player object we assigned
-        if (other.gameObject == playerObject)
+        if (other.CompareTag("Player"))
         {
-            playerObject.layer = LayerMask.NameToLayer(playerLayer);
+            other.gameObject.layer = LayerMask.NameToLayer(playerLayer);
+            OnPlayerHideStatusChanged?.Invoke(false);
         }
+    }
+
+    public bool IsPlayerHiding()
+    {
+        return isPlayerHiding;
     }
 
     // Safety check
