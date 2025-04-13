@@ -22,6 +22,19 @@ namespace StarterAssets
 		[Tooltip("Acceleration and deceleration")]
 		public float SpeedChangeRate = 10.0f;
 
+		[Header("Stamina System")]
+		[Tooltip("Maximum stamina value")]
+		public float MaxStamina = 10f;
+		[Tooltip("Stamina consumption per second while sprinting")]
+		public float StaminaConsumption = 2f;
+		[Tooltip("Stamina regeneration per second when not sprinting")]
+		public float StaminaRegen = 1f;
+		[Tooltip("Delay before stamina starts regenerating after sprinting")]
+		public float StaminaRegenDelay = 2f;
+
+		public float _currentStamina;
+		public float _staminaRegenTimer;
+
 		[Header("Crouch")]
 		[Tooltip("Height of the character when crouching")]
 		public float CrouchHeight = 0.9f;
@@ -47,6 +60,11 @@ namespace StarterAssets
 		private float _headBobTimer;
 		private float _currentBobAmount;
 		private float _currentBobSpeed;
+
+		[Header("Jump Cooldown")]
+		[Tooltip("Cooldown time between jumps in seconds")]
+		public float JumpCooldown = 0.5f;
+		private float _jumpCooldownDelta;
 
 		[Space(10)]
 		[Tooltip("The height the player can jump")]
@@ -97,7 +115,7 @@ namespace StarterAssets
 		private float _jumpTimeoutDelta;
 		private float _fallTimeoutDelta;
 
-	
+
 #if ENABLE_INPUT_SYSTEM
 		private PlayerInput _playerInput;
 #endif
@@ -111,11 +129,11 @@ namespace StarterAssets
 		{
 			get
 			{
-				#if ENABLE_INPUT_SYSTEM
+#if ENABLE_INPUT_SYSTEM
 				return _playerInput.currentControlScheme == "KeyboardMouse";
-				#else
+#else
 				return false;
-				#endif
+#endif
 			}
 		}
 
@@ -130,12 +148,15 @@ namespace StarterAssets
 
 		private void Start()
 		{
+			_currentStamina = MaxStamina; // Start with full stamina
+			_staminaRegenTimer = 0f;
+			_jumpCooldownDelta = 0f;
 			_controller = GetComponent<CharacterController>();
 			_input = GetComponent<StarterAssetsInputs>();
 #if ENABLE_INPUT_SYSTEM
 			_playerInput = GetComponent<PlayerInput>();
 #else
-			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
+			Debug.LogError("Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
 #endif
 
 			// reset our timeouts on start
@@ -143,26 +164,27 @@ namespace StarterAssets
 			_fallTimeoutDelta = FallTimeout;
 
 			// Store original height
-    		_originalHeight = _controller.height;
+			_originalHeight = _controller.height;
 
 			if (CinemachineCameraTarget != null)
 			{
 				_defaultCameraYPosition = CinemachineCameraTarget.transform.localPosition.y;
 			}
-			
+
 			_currentBobAmount = WalkBobAmount;
 			_currentBobSpeed = WalkBobSpeed;
 
 		}
 
 		private void Update()
-{
-    JumpAndGravity();
-    GroundedCheck();
-    HandleCrouch();
-    Move();
-    HandleHeadBob(); // Add this line
-}
+		{
+			HandleStamina(); // Add this before other methods
+			JumpAndGravity();
+			GroundedCheck();
+			HandleCrouch();
+			Move();
+			HandleHeadBob();
+		}
 
 		private void LateUpdate()
 		{
@@ -175,101 +197,131 @@ namespace StarterAssets
 			Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z);
 			Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
 		}
+		private void HandleStamina()
+		{
+			// Consume stamina when sprinting
+			if (_input.sprint && _input.move != Vector2.zero && !_isCrouching)
+			{
+				_currentStamina -= StaminaConsumption * Time.deltaTime;
+				_staminaRegenTimer = StaminaRegenDelay; // Reset regen delay
+
+				// Clamp stamina to minimum 0
+				_currentStamina = Mathf.Max(_currentStamina, 0f);
+
+				// Stop sprinting if out of stamina
+				if (_currentStamina <= 0f)
+				{
+					_input.sprint = false;
+				}
+			}
+			// Regenerate stamina when not sprinting
+			else if (_currentStamina < MaxStamina)
+			{
+				_staminaRegenTimer -= Time.deltaTime;
+
+				// Only start regenerating after the delay
+				if (_staminaRegenTimer <= 0f)
+				{
+					_currentStamina += StaminaRegen * Time.deltaTime;
+					_currentStamina = Mathf.Min(_currentStamina, MaxStamina);
+				}
+			}
+		}
 
 		private void HandleHeadBob()
-{
-    if (CinemachineCameraTarget == null) return;
+		{
+			if (CinemachineCameraTarget == null) return;
 
-    // Set bob parameters based on movement state
-    if (_input.sprint && _input.move != Vector2.zero)
-    {
-        _currentBobAmount = SprintBobAmount;
-        _currentBobSpeed = SprintBobSpeed;
-    }
-    else if (_input.move != Vector2.zero)
-    {
-        _currentBobAmount = WalkBobAmount;
-        _currentBobSpeed = WalkBobSpeed;
-    }
+			// Set bob parameters based on movement state
+			if (_input.sprint && _input.move != Vector2.zero)
+			{
+				_currentBobAmount = SprintBobAmount;
+				_currentBobSpeed = SprintBobSpeed;
+			}
+			else if (_input.move != Vector2.zero)
+			{
+				_currentBobAmount = WalkBobAmount;
+				_currentBobSpeed = WalkBobSpeed;
+			}
 
-    // Apply head bob when moving and grounded
-    if (Grounded && _input.move != Vector2.zero)
-    {
-        _headBobTimer += Time.deltaTime * _currentBobSpeed;
-        float bobOffset = Mathf.Sin(_headBobTimer) * _currentBobAmount;
-        
-        Vector3 cameraPos = CinemachineCameraTarget.transform.localPosition;
-        cameraPos.y = _defaultCameraYPosition + bobOffset;
-        CinemachineCameraTarget.transform.localPosition = cameraPos;
-    }
-    else
-    {
-        // Reset camera position when not moving
-        Vector3 cameraPos = CinemachineCameraTarget.transform.localPosition;
-        cameraPos.y = _defaultCameraYPosition;
-        CinemachineCameraTarget.transform.localPosition = cameraPos;
-        _headBobTimer = 0; // Reset timer
-    }
-}
+			// Apply head bob when moving and grounded
+			if (Grounded && _input.move != Vector2.zero)
+			{
+				_headBobTimer += Time.deltaTime * _currentBobSpeed;
+				float bobOffset = Mathf.Sin(_headBobTimer) * _currentBobAmount;
+
+				Vector3 cameraPos = CinemachineCameraTarget.transform.localPosition;
+				cameraPos.y = _defaultCameraYPosition + bobOffset;
+				CinemachineCameraTarget.transform.localPosition = cameraPos;
+			}
+			else
+			{
+				// Reset camera position when not moving
+				Vector3 cameraPos = CinemachineCameraTarget.transform.localPosition;
+				cameraPos.y = _defaultCameraYPosition;
+				CinemachineCameraTarget.transform.localPosition = cameraPos;
+				_headBobTimer = 0; // Reset timer
+			}
+		}
 
 		private void HandleCrouch()
-{
-    // Check for crouch input (CTRL key)
-    bool wantsToCrouch = Keyboard.current != null && Keyboard.current.ctrlKey.isPressed;
+		{
+			// Check for crouch input (CTRL key)
+			bool wantsToCrouch = Keyboard.current != null && Keyboard.current.ctrlKey.isPressed;
 
-    // If player wants to stand up but there's an obstacle, force crouch
-    if (_isCrouching && !wantsToCrouch && HasObstacleAbove())
-    {
-        // Player can't stand up because there's an obstacle
-        return;
-    }
+			// If player wants to stand up but there's an obstacle, force crouch
+			if (_isCrouching && !wantsToCrouch && HasObstacleAbove())
+			{
+				// Player can't stand up because there's an obstacle
+				return;
+			}
 
-    // If crouch state changed
-    if (wantsToCrouch != _isCrouching)
-    {
-        _isCrouching = wantsToCrouch;
-        
-        // Adjust height based on crouch state
-        float targetHeight = _isCrouching ? CrouchHeight : _originalHeight;
-        
-        // Smoothly transition to target height
-        StartCoroutine(SmoothCrouchTransition(targetHeight));
-    }
-}
+			// If crouch state changed
+			if (wantsToCrouch != _isCrouching)
+			{
+				_isCrouching = wantsToCrouch;
 
-private bool HasObstacleAbove()
-{
-    // Calculate the top of the character controller
-    float currentHeight = _controller.height;
-    Vector3 rayStart = transform.position + _controller.center + Vector3.up * (currentHeight / 2 - _controller.radius);
-    
-    // Cast a sphere to check for obstacles
-    float checkRadius = _controller.radius * 0.9f; // Slightly smaller than controller radius
-    return Physics.SphereCast(rayStart, checkRadius, Vector3.up, out _, CeilingCheckDistance, ObstacleLayers);
-}
+				// Adjust height based on crouch state
+				float targetHeight = _isCrouching ? CrouchHeight : _originalHeight;
 
-private IEnumerator SmoothCrouchTransition(float targetHeight)
-{
-    float initialHeight = _controller.height;
-    float t = 0f;
-    
-    while (t < 1f)
-    {
-        // If transitioning to standing but obstacle appears, abort and return to crouch
-        if (!_isCrouching && HasObstacleAbove())
-        {
-            // Immediately return to crouch
-            _isCrouching = true;
-            targetHeight = CrouchHeight;
-            initialHeight = _controller.height;
-            t = 0f;
-        }
-        
-        t += Time.deltaTime * CrouchTransitionSpeed;
-        _controller.height = Mathf.Lerp(initialHeight, targetHeight, t);
-        yield return null;
-    }
-}
+				// Smoothly transition to target height
+				StartCoroutine(SmoothCrouchTransition(targetHeight));
+			}
+		}
+
+		private bool HasObstacleAbove()
+		{
+			// Calculate the top of the character controller
+			float currentHeight = _controller.height;
+			Vector3 rayStart = transform.position + _controller.center + Vector3.up * (currentHeight / 2 - _controller.radius);
+
+			// Cast a sphere to check for obstacles
+			float checkRadius = _controller.radius * 0.9f; // Slightly smaller than controller radius
+			return Physics.SphereCast(rayStart, checkRadius, Vector3.up, out _, CeilingCheckDistance, ObstacleLayers);
+		}
+
+		private IEnumerator SmoothCrouchTransition(float targetHeight)
+		{
+			float initialHeight = _controller.height;
+			float t = 0f;
+
+			while (t < 1f)
+			{
+				// If transitioning to standing but obstacle appears, abort and return to crouch
+				if (!_isCrouching && HasObstacleAbove())
+				{
+					// Immediately return to crouch
+					_isCrouching = true;
+					targetHeight = CrouchHeight;
+					initialHeight = _controller.height;
+					t = 0f;
+				}
+
+				t += Time.deltaTime * CrouchTransitionSpeed;
+				_controller.height = Mathf.Lerp(initialHeight, targetHeight, t);
+				yield return null;
+			}
+		}
 
 		private void CameraRotation()
 		{
@@ -278,7 +330,7 @@ private IEnumerator SmoothCrouchTransition(float targetHeight)
 			{
 				//Don't multiply mouse input by Time.deltaTime
 				float deltaTimeMultiplier = IsCurrentDeviceMouse ? 1.0f : Time.deltaTime;
-				
+
 				_cinemachineTargetPitch += _input.look.y * RotationSpeed * deltaTimeMultiplier;
 				_rotationVelocity = _input.look.x * RotationSpeed * deltaTimeMultiplier;
 
@@ -293,13 +345,12 @@ private IEnumerator SmoothCrouchTransition(float targetHeight)
 			}
 		}
 
-		
+
 
 		private void Move()
 		{
 			// set target speed based on move speed, sprint speed and if sprint is pressed
-			float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
-
+			float targetSpeed = (_input.sprint && _currentStamina > 0 && !_isCrouching) ? SprintSpeed : MoveSpeed;
 			// a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
 			// Reduce speed if crouching
 			if (_isCrouching)
@@ -348,11 +399,17 @@ private IEnumerator SmoothCrouchTransition(float targetHeight)
 			{
 				_controller.Move(inputDirection.normalized * (_speed * Time.deltaTime) + new Vector3(0.0f, _verticalVelocity, 0.0f) * Time.deltaTime);
 			}
-			
+
 		}
 
 		private void JumpAndGravity()
 		{
+			// Update cooldown timer
+			if (_jumpCooldownDelta > 0)
+			{
+				_jumpCooldownDelta -= Time.deltaTime;
+			}
+
 			if (Grounded)
 			{
 				// reset the fall timeout timer
@@ -364,11 +421,14 @@ private IEnumerator SmoothCrouchTransition(float targetHeight)
 					_verticalVelocity = -2f;
 				}
 
-				// Jump
-				if (_input.jump && _jumpTimeoutDelta <= 0.0f)
+				// Jump - now checks cooldown as well
+				if (_input.jump && _jumpTimeoutDelta <= 0.0f && _jumpCooldownDelta <= 0)
 				{
 					// the square root of H * -2 * G = how much velocity needed to reach desired height
 					_verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+
+					// Reset cooldown
+					_jumpCooldownDelta = JumpCooldown;
 				}
 
 				// jump timeout
