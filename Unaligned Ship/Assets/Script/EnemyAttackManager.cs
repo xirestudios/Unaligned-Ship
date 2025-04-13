@@ -95,7 +95,7 @@ public class EnemyAttackManager : MonoBehaviour
 {
     if (!enemyPatrol.IsInCombat)
     {
-        Debug.Log("Not in combat - skipping attack logic");
+        // Debug.Log("Not in combat - skipping attack logic");
         return;
     }
 
