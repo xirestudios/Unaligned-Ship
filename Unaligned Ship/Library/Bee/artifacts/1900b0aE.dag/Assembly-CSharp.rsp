@@ -412,6 +412,7 @@
 "Assets/Script/EnemyAttack.cs"
 "Assets/Script/EnemyAttackManager.cs"
 "Assets/Script/EnemyDetector.cs"
+"Assets/Script/EnemyMannequinPatrol.cs"
 "Assets/Script/EnemyPatrol.cs"
 "Assets/Script/EnemyStun.cs"
 "Assets/Script/PlayerHealth.cs"
