@@ -5,6 +5,10 @@ using UnityEngine.AI;
 [RequireComponent(typeof(Animator))]
 public class EnemyMannequinPatrol : MonoBehaviour
 {
+    [Header("Mode Settings")]
+    public bool isMannequin = true;
+    public KeyCode toggleKey = KeyCode.M;
+
     [Header("Detection Settings")]
     public float detectionRadius = 10f;
     public float chaseRadius = 15f;
@@ -44,7 +48,17 @@ public class EnemyMannequinPatrol : MonoBehaviour
 
     void Update()
     {
-        CheckPlayerVisibility();
+        // Toggle mode with keyboard input
+        if (Input.GetKeyDown(toggleKey))
+        {
+            isMannequin = !isMannequin;
+            Debug.Log($"Switched to {(isMannequin ? "Mannequin" : "Normal")} mode");
+        }
+
+        if (isMannequin)
+        {
+            CheckPlayerVisibility();
+        }
         HandleMovement();
     }
 
@@ -79,8 +93,8 @@ public class EnemyMannequinPatrol : MonoBehaviour
 
     void HandleMovement()
     {
-        // Always freeze when player is looking
-        if (isVisibleToPlayer)
+        // Freeze behavior when in mannequin mode and player is looking
+        if (isMannequin && isVisibleToPlayer)
         {
             agent.isStopped = true;
             UpdateAnimation(false);
@@ -169,5 +183,11 @@ public class EnemyMannequinPatrol : MonoBehaviour
         // Draw patrol area
         Gizmos.color = new Color(0, 0, 1, 0.1f);
         Gizmos.DrawSphere(initialPosition, patrolRadius);
+    }
+
+    // Public method to toggle mode programmatically
+    public void ToggleMannequinMode(bool enableMannequin)
+    {
+        isMannequin = enableMannequin;
     }
 }
